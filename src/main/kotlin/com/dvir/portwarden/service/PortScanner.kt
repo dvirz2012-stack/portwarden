@@ -24,4 +24,12 @@ class PortScanner {
         }
         return results
     }
+
+    fun isKillable(argetPort: Int, pid: Long): Boolean {
+        
+        return scanListeningPorts().any {
+            it.port == targetPort && it.pid == pid
+        }
+
+    }
 }

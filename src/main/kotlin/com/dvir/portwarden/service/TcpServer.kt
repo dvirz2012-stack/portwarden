@@ -4,20 +4,34 @@ import java.net.ServerSocket
 
 import com.dvir.portwarden.model.Commands
 
+import com.dvir.portwarden.service.PortScanner
+
+import com.dvir.portwarden.service.ProcessManager
+
 class TcpServer {
 
-    fun startServer(port: Int){
+    fun startServer(serverPort: Int){
 
-        val myServer = ServerSocket(port)
+        val myServer = ServerSocket(serverPort)
+        val commandPortScanner = PortScanner()
+        val killThatProcessDude = ProcessManager()
+        val ports = commandPortScanner.scanListeningPorts()
         val client = myServer.accept()
-        println("Client connected.")
-        val clientMessage = client.getInputStream().bufferedReader().readLine()
-        println("Client says: $clientMessage")
-        try {
 
-        val command = Commands.valueOf(clientMessage)
+        try{
 
-        } catch {
+            println("Client connected.")
+            val clientMessage = client.getInputStream().bufferedReader().readLine()
+            println("Client says: $clientMessage")
+            val command = Commands.valueOf(clientMessage)
+        
+            when (command) {
+
+                FETCH_PORTS -> ports.forEach { portInfo -> println("Port: ${portInfo.port} | PID: ${portInfo.pid} ")}
+                KILL_PROCESS -> println("process killing is still not implemented fully")
+            }
+
+        } catch (e: Exception) {
             println("You've written a wrong command.")
         }
 
