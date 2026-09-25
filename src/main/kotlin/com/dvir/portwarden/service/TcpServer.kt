@@ -4,9 +4,7 @@ import java.net.ServerSocket
 
 import com.dvir.portwarden.model.Commands
 
-import com.dvir.portwarden.service.PortScanner
-
-import com.dvir.portwarden.service.ProcessManager
+import java.io.BufferedInputStream
 
 class TcpServer {
 
@@ -15,22 +13,46 @@ class TcpServer {
         val myServer = ServerSocket(serverPort)
         val commandPortScanner = PortScanner()
         val killThatProcessDude = ProcessManager()
-        val ports = commandPortScanner.scanListeningPorts()
         val client = myServer.accept()
 
-        try{
+        try {
+            while (true) {
 
-            println("Client connected.")
-            val clientMessage = client.getInputStream().bufferedReader().readLine()
-            println("Client says: $clientMessage")
-            val command = Commands.valueOf(clientMessage)
-        
-            when (command) {
+                val ports = commandPortScanner.scanListeningPorts()
+                var clientReader = client.getInputStream().bufferedReader()
+                var clientWriter = java.io.PrintWriter(client.getOutputStream(), true)
+                var clientMessage = clientReader.readLine().trim().uppercase()
+                clientWriter.println("Client says: $clientMessage")
+                val command = Commands.valueOf(clientMessage)
 
-                FETCH_PORTS -> ports.forEach { portInfo -> println("Port: ${portInfo.port} | PID: ${portInfo.pid} ")}
-                KILL_PROCESS -> println("process killing is still not implemented fully")
+                when (command) {
+
+                    Commands.FETCH_PORTS -> {
+                        ports.forEach { portInfo -> clientWriter.println("Port: ${portInfo.port} | PID: ${portInfo.pid} ") }
+                    }
+
+                    Commands.KILL_PROCESS -> {
+                        clientWriter.println("Kill port: ")
+                        val portInputStr = clientReader.readLine()
+                        val portInput: Int? = portInputStr?.toIntOrNull()
+                        var targetPid: Long = -1L
+                        ports.forEach { portInfo ->
+                            if (portInfo.port == portInput) {
+                                targetPid = portInfo.pid
+                            }
+                        }
+                        if (portInput != null && commandPortScanner.isKillable(portInput, targetPid)) {
+                            killThatProcessDude.killProcess(targetPid)
+                        } else if (portInput == null) {
+                            clientWriter.println("This port doesn't exist.")
+                        } else if (!(commandPortScanner.isKillable(portInput, targetPid))) {
+                            clientWriter.println("This process is not killable.")
+                        } else {
+                            clientWriter.println("An error occurred while checking if the port: $portInput is killable. try again.")
+                        }
+                    }
+                }
             }
-
         } catch (e: Exception) {
             println("You've written a wrong command.")
         }
