@@ -28,7 +28,7 @@ class WebSocketRouter(port: Int): WebSocketServer(InetSocketAddress(System.geten
     val theOneWhoKillsButInWebSocket = ProcessManager()
     val waitingForPort = mutableSetOf<WebSocket>()
     val ourGson = Gson()
-
+    val allowedOrigins = setOf(System.getenv("ALLOWED_ORIGIN") ?: "http://localhost:63342")
     override fun onStart(){
 
         println("Websocket server started on port $port")
@@ -37,6 +37,14 @@ class WebSocketRouter(port: Int): WebSocketServer(InetSocketAddress(System.geten
 
     override fun onOpen(conn: WebSocket, handshake: ClientHandshake? ){
 
+        val origin = handshake?.getFieldValue("Origin")
+
+        if (origin !in allowedOrigins){
+
+            conn.close()
+            return
+
+        }
         println("Web client connected: ${conn.remoteSocketAddress}")
 
     }
