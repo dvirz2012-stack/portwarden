@@ -3,6 +3,7 @@ package com.dvir.portwarden.service
 import com.dvir.portwarden.model.PortInfo
 
 class PortScanner {
+    val iconExtractor = IconExtractor()
 
     fun scanListeningPorts(): List<PortInfo> {
 
@@ -17,6 +18,7 @@ class PortScanner {
 
                 val parts = line.replace("\"","").split(",")
                 if (parts.size >= 2){
+
 
                     val name = parts[0]
                     val currentPid = parts[1].toLongOrNull()
@@ -42,14 +44,20 @@ class PortScanner {
                 val newLineNoWhitespaces : List<String> = newLine.split("\\s+".toRegex())
 
                 val addressString = newLineNoWhitespaces[1]
-                var pid = newLineNoWhitespaces[4].toLong()
-                var port = addressString.substringAfterLast(":").toInt()
+                val pid = newLineNoWhitespaces[4].toLong()
+
+                val path = ProcessHandle.of(pid).flatMap{it.info().command()}.orElse(null)
+                val icon = path?.let{iconExtractor.getIcon(it)}
+
+                val port = addressString.substringAfterLast(":").toInt()
 
                 val processName = pidToNameMap[pid] ?: "Unknown"
-                results.add(PortInfo(port, pid, processName))
+
+                results.add(PortInfo(port, pid, processName, icon))
 
             }
         }
+
         return results.distinct()
     }
 
