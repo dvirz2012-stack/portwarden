@@ -19,9 +19,9 @@ class TcpServer {
             while (true) {
 
                 val ports = commandPortScanner.scanListeningPorts()
-                var clientReader = client.getInputStream().bufferedReader()
-                var clientWriter = java.io.PrintWriter(client.getOutputStream(), true)
-                var clientMessage = clientReader.readLine().trim().uppercase()
+                val clientReader = client.getInputStream().bufferedReader()
+                val clientWriter = java.io.PrintWriter(client.getOutputStream(), true)
+                val clientMessage = clientReader.readLine().trim().uppercase()
                 clientWriter.println("Client says: $clientMessage")
                 val command = Commands.valueOf(clientMessage)
 
@@ -41,14 +41,14 @@ class TcpServer {
                                 targetPid = portInfo.pid
                             }
                         }
-                        if (portInput != null && commandPortScanner.isKillable(portInput, targetPid)) {
-                            killThatProcessDude.killProcess(targetPid)
-                        } else if (portInput == null) {
-                            clientWriter.println("This port doesn't exist.")
-                        } else if (!(commandPortScanner.isKillable(portInput, targetPid))) {
-                            clientWriter.println("This process is not killable.")
+                        if (portInput == null || targetPid == -1L) {
+                            clientWriter.println("No process listening on that port.")
+                        } else if (!commandPortScanner.isKillable(portInput, targetPid)) {
+                            clientWriter.println("Port owner changed, try again.")
+                        } else if (!killThatProcessDude.killProcess(targetPid)) {
+                            clientWriter.println("Couldn't kill process (permission denied?)")
                         } else {
-                            clientWriter.println("An error occurred while checking if the port: $portInput is killable. try again.")
+                            clientWriter.println("Process $targetPid killed successfully.")
                         }
                     }
                 }

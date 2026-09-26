@@ -10,7 +10,7 @@ import org.java_websocket.server.WebSocketServer
 
 fun main(){
 
-    val port = 8887
+    val port = System.getenv("WS_PORT")?.toIntOrNull() ?: 8887
     val server = WebSocketRouter(port)
     server.start()
 

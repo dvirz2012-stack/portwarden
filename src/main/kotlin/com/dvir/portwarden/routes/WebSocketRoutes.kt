@@ -6,21 +6,28 @@ import com.dvir.portwarden.service.ProcessManager
 
 import com.dvir.portwarden.model.Commands
 
+import com.dvir.portwarden.model.JsonResponse
+
+import com.dvir.portwarden.model.Types
+
 import org.java_websocket.server.WebSocketServer
 
 import org.java_websocket.WebSocket
 
 import org.java_websocket.handshake.ClientHandshake
 
+import com.google.gson.Gson
+
 import java.net.InetSocketAddress
 
 import java.lang.Exception
 
-class WebSocketRouter(port: Int): WebSocketServer(InetSocketAddress("127.0.0.1", port)){
+class WebSocketRouter(port: Int): WebSocketServer(InetSocketAddress(System.getenv("WS_HOST") ?: "127.0.0.1", port)){
 
     val webSocketPortScanner = PortScanner()
     val theOneWhoKillsButInWebSocket = ProcessManager()
     val waitingForPort = mutableSetOf<WebSocket>()
+    val ourGson = Gson()
 
     override fun onStart(){
 
@@ -40,7 +47,9 @@ class WebSocketRouter(port: Int): WebSocketServer(InetSocketAddress("127.0.0.1",
 
         if (conn in waitingForPort){
 
-            var portWritten: Int? = message.trim().toIntOrNull()
+            waitingForPort.remove(conn)
+
+            val portWritten: Int? = message.trim().toIntOrNull()
             var targetPid = -1L
 
             val currPorts = webSocketPortScanner.scanListeningPorts()
@@ -53,18 +62,43 @@ class WebSocketRouter(port: Int): WebSocketServer(InetSocketAddress("127.0.0.1",
 
             }
 
-            if (portWritten != null && webSocketPortScanner.isKillable(portWritten, targetPid)){
+            val response = when {
 
-                theOneWhoKillsButInWebSocket.killProcess(targetPid)
-                conn.send("Process $targetPid killed.")
+                portWritten == null || targetPid == -1L -> JsonResponse(
 
-            } else {
+                    message = "No process listening on that port",
+                    data = portWritten ?: -1,
+                    type = Types.ERROR
 
-                conn.send("Cannot kill port $portWritten.")
+                )
+
+                !webSocketPortScanner.isKillable(portWritten, targetPid) -> JsonResponse(
+
+                    message = "Port owner changed, try again",
+                    data = targetPid,
+                    type = Types.ERROR
+
+                )
+
+                !theOneWhoKillsButInWebSocket.killProcess(targetPid) -> JsonResponse(
+
+                    message = "Couldn't kill process (permission denied?)",
+                    data = targetPid,
+                    type = Types.ERROR
+
+                )
+
+                else -> JsonResponse(
+
+                    message = "Process killed successfully",
+                    data = targetPid,
+                    type = Types.SUCCESS
+
+                )
 
             }
 
-            waitingForPort.remove(conn)
+            conn.send(ourGson.toJson(response))
 
         } else {
 
@@ -79,13 +113,32 @@ class WebSocketRouter(port: Int): WebSocketServer(InetSocketAddress("127.0.0.1",
                     Commands.FETCH_PORTS -> {
 
                         val currPorts = webSocketPortScanner.scanListeningPorts()
-                        conn.send(currPorts.joinToString("\n"))
+
+                        val jsonResponseForPortsFetched = JsonResponse(
+
+
+                            message = "Ports fetched successfully",
+                            data = currPorts,
+                            type = Types.SUCCESS
+
+                        )
+
+                        conn.send(ourGson.toJson(jsonResponseForPortsFetched))
 
                     }
 
                     Commands.KILL_PROCESS -> {
 
-                        conn.send("Enter the port the process Lives in: ")
+                        val jsonResponseForAskingForAPort = JsonResponse(
+
+                            message = "Enter Port to Kill: ",
+                            data = "",
+                            type = Types.SUCCESS
+
+                        )
+
+                        conn.send(ourGson.toJson(jsonResponseForAskingForAPort))
+
                         waitingForPort.add(conn)
 
                     }
@@ -94,7 +147,15 @@ class WebSocketRouter(port: Int): WebSocketServer(InetSocketAddress("127.0.0.1",
 
             } catch (e: Exception){
 
-                conn.send("Invalid command.")
+                val jsonResponseForUnknownCommand = JsonResponse(
+
+                    message = "Unknown command",
+                    data = -1,
+                    type = Types.ERROR
+
+                )
+
+                conn.send(ourGson.toJson(jsonResponseForUnknownCommand))
 
             }
 
