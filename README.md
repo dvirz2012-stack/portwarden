@@ -10,12 +10,6 @@
 
 </div>
 
-> [!WARNING]
-> There's still no authentication, any website open in your browser can connect to the WebSocket URL, and send KILL_PROCESS, because browsers don't block cross-site WebSocket
-> connections and the Server doesn't check the origin header, I'm working on fixing this :)
-
-**What have I made?**
-
 This program lists listening ports with their pid and process name, and kills a process by port, you can click the "Kill" button on the process you want to kill, and simple as that! :)
 
 **How it works**
