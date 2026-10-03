@@ -10,14 +10,14 @@
 
 </div>
 
-This program lists listening ports with their pid and process name, and kills a process by port, you can click the "Kill" button on the process you want to kill, and simple as that! :)
+This program lists listening ports with their pid and process name, and kills a process by port, you can click the "Kill" button on the process you want to kill, and simple as that
 
 **How it works**
 
 Now, the frontend is connected with the backend by an "invisible wire" which is the WebSocket port (PortWarden's port in localhost).
 Frontend waits for the backend to send the codes from the JSON responses, and by that creates tables or removes a port off the table (depending on which command
 was sent to the backend, FETCH_PORTS or KILL_PROCESS)
-it is pretty cool, and I really enjoy making this :)
+it is pretty cool, and I really enjoy making this.
 
 Also, the JSON response body looks like this:
 
