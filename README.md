@@ -63,6 +63,6 @@ Steps on how to run it locally:
 https://github.com/dvirz2012-stack/portwardenFrontend
 <div align="center">
 
- made by **Dvir**
+ made by **Dvir :)**
 
 </div>
